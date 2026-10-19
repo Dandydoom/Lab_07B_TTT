@@ -1,7 +1,9 @@
 /**
  * TTTBoard - the 3x3 Tic Tac Toe board.
  * Holds the board state and owns all of the board-checking logic
- * (the old static helper methods from the console version now live here).
+ * (the isWin / isTie helper methods from the original GUI TTT now live here).
+ *
+ * @author Kirby Fortney
  */
 public class TTTBoard
 {

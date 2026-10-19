@@ -2,6 +2,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * JUnit 5 tests for TTTGame.
+ *
+ * @author Kirby Fortney
+ */
 class TTTGameTest
 {
     private TTTGame game;

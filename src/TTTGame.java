@@ -3,6 +3,8 @@
  * Tracks whose turn it is and how many moves have been made, applies moves
  * to the TTTBoard, and decides when the game is won or tied.
  * Has no Swing code, so it can be tested with JUnit.
+ *
+ * @author Kirby Fortney
  */
 public class TTTGame
 {

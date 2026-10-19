@@ -1,113 +1,148 @@
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
 /**
- * TicTacToeFrame - the GUI (view/controller).
- * Builds the 3x3 grid of TTTTileButtons and the Quit button, passes clicks
- * to the TTTGame, and shows the results to the players.
- * All game rules live in TTTGame / TTTBoard, not in the listener.
+ * GUI for the 2-player Tic Tac Toe game (the view / controller).
+ * Builds the same interface as the original GUI TTT: a status label on top,
+ * a 3 x 3 grid of TicTacToeTile buttons, and a Quit button on the bottom.
+ * All of the game rules now live in TTTGame and TTTBoard, so the listener
+ * only passes the move to the game and shows the result.
+ *
+ * @author Kirby Fortney
  */
 public class TicTacToeFrame extends JFrame
 {
     private final TTTGame game = new TTTGame();
-    private final TTTTileButton[][] tiles = new TTTTileButton[TTTBoard.ROWS][TTTBoard.COLS];
-    private final JLabel statusLabel = new JLabel("Player X's turn", SwingConstants.CENTER);
+
+    // GUI parts
+    private final TicTacToeTile[][] tiles = new TicTacToeTile[TTTBoard.ROWS][TTTBoard.COLS];
+    private JLabel statusLabel;
+    private JButton quitButton;
 
     public TicTacToeFrame()
     {
-        super("Tic Tac Toe");
+        setTitle("Tic Tac Toe");
         setLayout(new BorderLayout());
 
-        add(createTitlePanel(), BorderLayout.NORTH);
+        // status label at the top
+        statusLabel = new JLabel("Player X's turn", SwingConstants.CENTER);
+        statusLabel.setFont(new Font("SansSerif", Font.BOLD, 20));
+        add(statusLabel, BorderLayout.NORTH);
+
+        // board in the center
         add(createBoardPanel(), BorderLayout.CENTER);
-        add(createControlPanel(), BorderLayout.SOUTH);
 
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(500, 600);
+        // quit button at the bottom
+        JPanel buttonPanel = new JPanel();
+        quitButton = new JButton("Quit");
+        quitButton.addActionListener((ActionEvent ae) -> quitGame());
+        buttonPanel.add(quitButton);
+        add(buttonPanel, BorderLayout.SOUTH);
+
+        setSize(400, 450);
         setLocationRelativeTo(null);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setVisible(true);
-    }
-
-    private JPanel createTitlePanel()
-    {
-        JPanel panel = new JPanel(new BorderLayout());
-        JLabel title = new JLabel("Tic Tac Toe", SwingConstants.CENTER);
-        title.setFont(new Font("SansSerif", Font.BOLD, 32));
-        statusLabel.setFont(new Font("SansSerif", Font.PLAIN, 18));
-        panel.add(title, BorderLayout.NORTH);
-        panel.add(statusLabel, BorderLayout.SOUTH);
-        return panel;
     }
 
     private JPanel createBoardPanel()
     {
-        JPanel panel = new JPanel(new GridLayout(TTTBoard.ROWS, TTTBoard.COLS));
+        JPanel boardPanel = new JPanel(new GridLayout(TTTBoard.ROWS, TTTBoard.COLS));
+        TileListener tileListener = new TileListener(); // one listener for all tiles
+
         for (int row = 0; row < TTTBoard.ROWS; row++)
         {
             for (int col = 0; col < TTTBoard.COLS; col++)
             {
-                TTTTileButton tile = new TTTTileButton(row, col);
-                tile.addActionListener(e -> handleTileClick(tile));
-                tiles[row][col] = tile;
-                panel.add(tile);
+                tiles[row][col] = new TicTacToeTile(row, col);
+                tiles[row][col].setText(" ");
+                tiles[row][col].setFont(new Font("SansSerif", Font.BOLD, 48));
+                tiles[row][col].addActionListener(tileListener);
+                boardPanel.add(tiles[row][col]);
             }
         }
-        return panel;
+        return boardPanel;
     }
 
-    private JPanel createControlPanel()
+    /**
+     * Single listener used by every tile on the board.
+     * It no longer contains game logic - it asks TTTGame to make the move.
+     */
+    private class TileListener implements ActionListener
     {
-        JPanel panel = new JPanel();
-        JButton quitButton = new JButton("Quit");
-        quitButton.setFont(new Font("SansSerif", Font.BOLD, 18));
-        quitButton.addActionListener(e -> System.exit(0));
-        panel.add(quitButton);
-        return panel;
-    }
-
-    /** The listener only translates the click into a game move and updates the view. */
-    private void handleTileClick(TTTTileButton tile)
-    {
-        String player = game.getCurrentPlayer();
-        TTTGame.MoveResult result = game.makeMove(tile.getRow(), tile.getCol());
-
-        switch (result)
+        @Override
+        public void actionPerformed(ActionEvent ae)
         {
-            case INVALID:
-                JOptionPane.showMessageDialog(this, "Invalid move! That square is taken.");
-                return;
-            case WIN:
-                tile.setText(player);
-                endGame("Player " + player + " wins!");
-                return;
-            case TIE:
-                tile.setText(player);
-                endGame("It's a tie!");
-                return;
-            case CONTINUE:
-                tile.setText(player);
+            TicTacToeTile clickedTile = (TicTacToeTile) ae.getSource();
+            String player = game.getCurrentPlayer();
+            TTTGame.MoveResult result = game.makeMove(clickedTile.getRow(), clickedTile.getCol());
+
+            if (result == TTTGame.MoveResult.INVALID)
+            {
+                JOptionPane.showMessageDialog(TicTacToeFrame.this,
+                        "That square is taken. Please pick an empty square.",
+                        "Illegal Move", JOptionPane.WARNING_MESSAGE);
+                return; // wait for a legal move
+            }
+
+            clickedTile.setText(player);
+
+            if (result == TTTGame.MoveResult.WIN)
+            {
+                JOptionPane.showMessageDialog(TicTacToeFrame.this, "Player " + player + " wins!");
+                askPlayAgain();
+            }
+            else if (result == TTTGame.MoveResult.TIE)
+            {
+                JOptionPane.showMessageDialog(TicTacToeFrame.this, "It's a Tie!");
+                askPlayAgain();
+            }
+            else
+            {
                 statusLabel.setText("Player " + game.getCurrentPlayer() + "'s turn");
-                break;
+            }
         }
     }
 
-    private void endGame(String message)
+    private void askPlayAgain()
     {
-        statusLabel.setText(message);
-        int choice = JOptionPane.showConfirmDialog(this, message + "\nPlay again?",
-                "Game Over", JOptionPane.YES_NO_OPTION);
-        if (choice == JOptionPane.YES_OPTION)
+        int answer = JOptionPane.showConfirmDialog(this, "Do you want to play again?",
+                "Play Again?", JOptionPane.YES_NO_OPTION);
+
+        if (answer == JOptionPane.YES_OPTION)
+        {
             resetGame();
+        }
         else
+        {
             System.exit(0);
+        }
     }
 
+    private void quitGame()
+    {
+        int answer = JOptionPane.showConfirmDialog(this, "Are you sure you want to quit?",
+                "Quit", JOptionPane.YES_NO_OPTION);
+
+        if (answer == JOptionPane.YES_OPTION)
+        {
+            System.exit(0);
+        }
+    }
+
+    /** Clears the game and the tiles for a new game. */
     private void resetGame()
     {
         game.reset();
-        for (TTTTileButton[] row : tiles)
-            for (TTTTileButton tile : row)
-                tile.setText(" ");
+        for (int row = 0; row < TTTBoard.ROWS; row++)
+        {
+            for (int col = 0; col < TTTBoard.COLS; col++)
+            {
+                tiles[row][col].setText(" ");
+            }
+        }
         statusLabel.setText("Player X's turn");
     }
 }
